@@ -6,7 +6,6 @@ public class DosAttackRecord
 {
     private static final long   LOCK_COUNT = 5;
     private static final long   CHECK_SPAN = 7 * 1000;
-    private static final double LOCK_VALUE = (double) LOCK_COUNT / CHECK_SPAN;
     private static final double LOCK_SPAN = CHECK_SPAN * 2;
 
     private long                attackCount;
