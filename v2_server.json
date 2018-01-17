@@ -1,0 +1,59 @@
+{
+    "log": {
+        "access": "./var/log/v2ray/access.log",
+        "error": "./var/log/v2ray/error.log",
+        "loglevel": "warning"
+    },
+    "inbound": {
+        "port": 8081,
+        "protocol": "vmess",
+        "settings": {
+            "clients": [{
+                "id": "73202edf-3b00-426b-a5c1-16405b6699d3",
+                "level": 1,
+                "alterId": 64
+            }]
+        },
+        "streamSettings": {
+            "network": "ws",
+            "security": "none",
+            "tlsSettings": {
+                "serverName": "gitserver-yxsicd1.c9users.io",
+                "allowInsecure": true
+            },
+            "wsSettings": {
+                "path": ""
+            }
+        }
+    },
+    "outbound": {
+        "protocol": "freedom",
+        "settings": {}
+    },
+    "routing": {
+        "strategy": "rules",
+        "settings": {
+            "rules": [{
+                "type": "field",
+                "ip": [
+                    "0.0.0.0/8",
+                    "10.0.0.0/8",
+                    "100.64.0.0/10",
+                    "127.0.0.0/8",
+                    "169.254.0.0/16",
+                    "172.16.0.0/12",
+                    "192.0.0.0/24",
+                    "192.0.2.0/24",
+                    "192.168.0.0/16",
+                    "198.18.0.0/15",
+                    "198.51.100.0/24",
+                    "203.0.113.0/24",
+                    "::1/128",
+                    "fc00::/7",
+                    "fe80::/10"
+                ],
+                "outboundTag": "blocked"
+            }]
+        }
+    }
+}
