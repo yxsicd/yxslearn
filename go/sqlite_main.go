@@ -36,9 +36,12 @@ func main() {
 	}
 
 	sqlStmt := fmt.Sprintf(`
-	create table foo (id,name, %s );
-	delete from foo;
-	`, strings.Join(column_name, ","))
+	create table _0 ( %s );
+	create table _2 ( %s );
+	delete from _0;
+	delete from _2;
+	
+	`, strings.Join(column_name, ","), strings.Join(column_name, ","))
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
 		log.Printf("%q: %s\n", err, sqlStmt)
@@ -52,32 +55,48 @@ func main() {
 	cname := strings.Join(column_name, ",")
 	cvalue := strings.Join(value_name, ",")
 
-	psql := fmt.Sprintf("insert into foo(id, name, %s) values(?, ?, %s)", cname, cvalue)
-	log.Printf("psql is %s", psql)
-	stmt, err := tx.Prepare(psql)
+	batch_values := make([]string, 0)
+	batch_count := 10
+	insert_count := 5000
+	for b := 0; b < batch_count; b++ {
+		batch_values = append(batch_values, fmt.Sprintf("(%s)", cvalue))
+	}
+	batch_all_values := strings.Join(batch_values, ",")
+
+	psql_1 := fmt.Sprintf("insert into _0 (%s) values %s ;", cname, batch_all_values)
+	// psql_2 := fmt.Sprintf("insert into _2 (%s) values %s ;", cname, batch_all_values)
+	log.Printf("psql is %s", psql_1)
+	stmt1, err := tx.Prepare(psql_1)
+	// stmt2, err := tx.Prepare(psql_2)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer stmt.Close()
-	insert_count := 50000
+	defer stmt1.Close()
+
 	insert_begin := time.Now()
 	log.Printf("begin insert row count is %v", insert_count)
-	for i := 0; i < insert_count; i++ {
 
+	for i := 0; i < insert_count; i++ {
 		value_list := make([]interface{}, 0)
-		for j := 0; j < column_count+2; j++ {
-			value_list = append(value_list, fmt.Sprintf("value_%v_%v", i, j))
+		for j := 0; j < column_count; j++ {
+			for b := 0; b < batch_count; b++ {
+				value_list = append(value_list, fmt.Sprintf("value-%v-%v-%v", i, j, b))
+			}
 		}
 
-		_, err = stmt.Exec(value_list[:]...)
+		_, err = stmt1.Exec(value_list[:]...)
 		if err != nil {
 			log.Fatal(err)
 		}
+		// _, err = stmt2.Exec(value_list[:]...)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
 	}
 	tx.Commit()
 	log.Printf("end insert row count is %v, use time is %v", insert_count, time.Since(insert_begin))
 
-	rows, err := db.Query("select * from foo")
+	rows, err := db.Query("select * from _0")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +107,7 @@ func main() {
 	log.Printf("begin query row count is %v", count)
 	for rows.Next() {
 		value_list := make([]interface{}, 0)
-		for j := 0; j < column_count+2; j++ {
+		for j := 0; j < column_count; j++ {
 			var v string
 			value_list = append(value_list, &v)
 		}
@@ -99,7 +118,7 @@ func main() {
 		if count == 0 {
 			for i, v := range value_list {
 				// mv := (*v).(string)
-				log.Printf("i=%v,v=%s ", i, *(v.(*string)))
+				fmt.Printf("i=%v,v=%s ", i, *(v.(*string)))
 			}
 		}
 		count++
@@ -111,44 +130,4 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stmt, err = db.Prepare("select name from foo where id = ?")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
-	var name string
-	err = stmt.QueryRow("3").Scan(&name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(name)
-
-	_, err = db.Exec("delete from foo")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = db.Exec("insert into foo(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz')")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	rows, err = db.Query("select id, name from foo")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int
-		var name string
-		err = rows.Scan(&id, &name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println(id, name)
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
